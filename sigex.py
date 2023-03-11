@@ -2,16 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.common.action_chains import ActionChains
 import time
-import random
-import sys
 import os
 import platform
-import subprocess
 
 executables = {
 	'chromedriver': {
@@ -26,10 +19,6 @@ executables = {
 
 def wait(sec):
 	time.sleep(sec)
-
-def web_driver_quit():
-	driver.quit()
-	quit()
 
 def find_path_of(target, possible_path):
 	for root, dirs, files in os.walk(rf'{possible_path}'):
