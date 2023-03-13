@@ -40,37 +40,36 @@ def chrome_driver_binary():
 	program, path = executables['chromedriver'][platform.system()]
 	return find_path_of(program, path)
 
+def download_file(dir_name, link):
+	options = webdriver.ChromeOptions()
+	options.add_argument('--start-maximized')
+	options.add_experimental_option("prefs", {"download.default_directory" : dir_name})
+	driver = webdriver.Chrome(chrome_driver_binary(), options = options)
+	driver.get(link)
+	driver.maximize_window()
+	wait(5)
+
+	rar_file_links = WebDriverWait(driver, 8).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'td a:not([href="/SIGEX_2019/"])')))
+	# Descargo los archivos de los proyectos separados por carpeta
+	for rar in rar_file_links:
+		file_name = rar.get_attribute('href').split("/")[-1]
+		current_path = dir_name + "/" + file_name
+		# Descargar el archivo solo si no se descargó antes
+		if not os.path.isfile(current_path):
+			rar.click()
+			# Esperar a que se descargue el archivo para descargar el siguiente
+			while not os.path.isfile(current_path):
+				wait(1)
+		else:
+			print(f"Archivo {file_name} ya descargado")
+	driver.quit()
+
 def download_files_from_links():
 	print("> Descargando archivos de SIGEX")
 	for link in links:
-		current_dir_name = "/Users/fjvalles/Downloads/" + link.split("https://portalgeo.sernageomin.cl/SIGEX_2019/")[1]
-		try:
-			# Creo una carpeta con el nombre del proyecto
-			os.mkdir(current_dir_name)
-		except Exception as e:
-			pass
-		options = webdriver.ChromeOptions()
-		options.add_argument('--start-maximized')
-		options.add_experimental_option("prefs", {"download.default_directory" : current_dir_name})
-		driver = webdriver.Chrome(chrome_driver_binary(), options = options)
-		driver.get(link)
-		driver.maximize_window()
-		wait(5)
-
-		rar_file_links = WebDriverWait(driver, 8).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'td a:not([href="/SIGEX_2019/"])')))
-		# Descargo los archivos de los proyectos separados por carpeta
-		for rar in rar_file_links:
-			file_name = rar.get_attribute('href').split("/")[-1]
-			current_path = current_dir_name + "/" + file_name
-			# Descargar el archivo solo si no se descargó antes
-			if not os.path.isfile(current_path):
-				rar.click()
-				# Esperar a que se descargue el archivo para descargar el siguiente
-				while not os.path.isfile(current_path):
-					wait(1)
-			else:
-				print(f"Archivo {file_name} ya descargado")
-		driver.quit()
+		current_dir_name = base_dir + link.split("https://portalgeo.sernageomin.cl/SIGEX_2019/")[-1]
+		if (os.path.isdir(current_dir_name) and ignore_dirs) or not os.path.isdir(current_dir_name):
+			download_file(current_dir_name, link)
 
 def get_sigex_links():
 	print("> Obteniendo links de SIGEX desde:")
@@ -124,11 +123,37 @@ def create_file_with_links():
 	# Cerrar archivo
 	f.close()
 
+def read_links_from_file():
+	print("> Leyendo links desde archivo sigex_links.txt")
+	with open('sigex_links.txt') as f:
+		for line in f:
+			links.append(line.strip())
+
+def ask_user_for_input():
+	print("")
+	print("¿Quieres obtener links de la página de SIGEX?")
+	print("    > Ingresa 1 para obtenerlos")
+	print("    > Ingresa otro caracter para descargar los datos en base a sigex_links.txt")
+	print("")
+	print("    ** Apreta la tecla Enter después de ingresar el caracter escogido")
+	print("")
+	input("Respuesta: (1/cualquier otro caracter)")
+
 if __name__ == "__main__":
 	global links
+	global ignore_dirs
+	global base_dir
 	links = []
-	get_sigex_links()
-	wait(5)
-	create_file_with_links()
-	wait(5)
+	# Si es False, no descargará archivos si la carpeta ya existe
+	# Cambiar por True para revisar si faltan archivos por descargar en carpetas ya existentes
+	ignore_dirs = False
+	# Directorio en donde se descargaran los archivos
+	base_dir = "/Users/fjvalles/Downloads/"
+	option = ask_user_for_input()
+	if option == 1:
+		get_sigex_links()
+		wait(5)
+		create_file_with_links()
+		wait(5)
+	read_links_from_file()
 	download_files_from_links()
