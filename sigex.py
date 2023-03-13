@@ -26,25 +26,25 @@ def find_path_of(target, possible_path):
 			if name == target:
 				return os.path.abspath(os.path.join(root, name))
 
-def options():
+def get_chrome_driver(dir_name = ''):
 	options = webdriver.ChromeOptions()
 	options.add_argument('--start-maximized')
+	if dir_name != '':
+		options.add_experimental_option("prefs", {"download.default_directory" : dir_name})
 	if platform.system() == 'Windows':
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 	options.add_experimental_option("excludeSwitches", ['enable-automation'])
 	program, path = executables['google_chrome'][platform.system()]
 	options.binary_location = find_path_of(program, path)
-	return options
+	driver = webdriver.Chrome(chrome_driver_binary(), options = options)
+	return driver
 
 def chrome_driver_binary():
 	program, path = executables['chromedriver'][platform.system()]
 	return find_path_of(program, path)
 
 def download_file(dir_name, link):
-	options = webdriver.ChromeOptions()
-	options.add_argument('--start-maximized')
-	options.add_experimental_option("prefs", {"download.default_directory" : dir_name})
-	driver = webdriver.Chrome(chrome_driver_binary(), options = options)
+	driver = get_chrome_driver(dir_name)
 	driver.get(link)
 	driver.maximize_window()
 	wait(5)
@@ -69,6 +69,10 @@ def download_files_from_links():
 	for link in links:
 		current_dir_name = base_dir + link.split("https://portalgeo.sernageomin.cl/SIGEX_2019/")[-1]
 		if (os.path.isdir(current_dir_name) and ignore_dirs) or not os.path.isdir(current_dir_name):
+			try:
+				os.mkdir(current_dir_name)
+			except Exception as e:
+				pass
 			download_file(current_dir_name, link)
 
 def get_sigex_links():
@@ -76,7 +80,7 @@ def get_sigex_links():
 	sigex_url = 'https://sernageomin.maps.arcgis.com/apps/dashboards/f47a3c43bb974de486313d2f15e70fda'
 	print(sigex_url)
 	# Configuro usar Chrome como navegador
-	driver = webdriver.Chrome(chrome_driver_binary(), options = options())
+	driver = get_chrome_driver()
 
   # Selectores CSS (para encontrar elementos en una página web)
 	details_css_selector = "body > div.full-page-container.bg-background > calcite-shell > div.dashboard-container.shadow-2.relative.calcite-mode-dark.flex.flex-auto.flex-col.overflow-hidden > div.flex-auto.flex.relative.overflow-hidden > div > div > div > margin-container > full-container > div:nth-child(20) > margin-container > full-container > div > div > div:nth-child(3) > div"
@@ -132,12 +136,12 @@ def read_links_from_file():
 def ask_user_for_input():
 	print("")
 	print("¿Quieres obtener links de la página de SIGEX?")
-	print("    > Ingresa 1 para obtenerlos")
-	print("    > Ingresa otro caracter para descargar los datos en base a sigex_links.txt")
+	print("    > Ingresa 1 para obtener los links de la página web")
+	print("    > Ingresa otro caracter para descargar los datos en base al archivo sigex_links.txt")
 	print("")
 	print("    ** Apreta la tecla Enter después de ingresar el caracter escogido")
 	print("")
-	input("Respuesta: (1/cualquier otro caracter)")
+	return input("Respuesta (1/cualquier otro caracter): ")
 
 if __name__ == "__main__":
 	global links
@@ -150,7 +154,8 @@ if __name__ == "__main__":
 	# Directorio en donde se descargaran los archivos
 	base_dir = "/Users/fjvalles/Downloads/"
 	option = ask_user_for_input()
-	if option == 1:
+	print("Option: ", option)
+	if option == '1':
 		get_sigex_links()
 		wait(5)
 		create_file_with_links()
