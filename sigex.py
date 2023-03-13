@@ -154,7 +154,6 @@ if __name__ == "__main__":
 	# Directorio en donde se descargaran los archivos
 	base_dir = "/Users/fjvalles/Downloads/"
 	option = ask_user_for_input()
-	print("Option: ", option)
 	if option == '1':
 		get_sigex_links()
 		wait(5)
